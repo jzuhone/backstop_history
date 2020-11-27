@@ -437,23 +437,21 @@ array([ ('2018:001:00:00:00.00', 631152069.184, '/CMD', 'OORMPEN', 'None', 'None
                 CMDS = command_data.cmd_vals[eachcommand['mnemonic']]['CMDS']
                 WORDS = command_data.cmd_vals[eachcommand['mnemonic']]['WORDS']
                 packet = command_data.cmd_vals[eachcommand['mnemonic']]['PACKET']
-        
-                new_cmd = { 'cmd': 'ACISPKT',
-                            'date': eachcommand['date'],
-                            'msid': None,
-                            'params': {'CMDS': CMDS,
-                                       'PACKET(40)': packet,
-                                       'SCS': self.SCS_NUM,
-                                       'STEP': step,
-                                       'TLMSID': tlmsid,
-                                       'WORDS': WORDS},
-                            'paramstr': 'TLMSID= '+tlmsid+', CMDS= '+str(CMDS)+', WORDS= '+str(WORDS)+', '+packet+'            , SCS= '+str(self.SCS_NUM)+', STEP= '+str(step),
-                            'scs': self.SCS_NUM,
-                            'step': step,
-                            'time': 0.0,
-                            'tlmsid': None,
-                            'vcdu': 00000000}
             
+                # Form a command with the parameters obtained from the RTS file
+                new_cmd = {'idx': -1,
+                           'date': eachcommand['date'],
+                           'type': 'ACISPKT',
+                           'tlmsid': tlmsid,
+                           'scs': self.SCS_NUM,
+                           'step': step,
+                           'time': -1,
+                           'timeline_id': 0,
+                           'vcdu': 0000000,
+                           'params': {'cmds': CMDS,
+                                      'words': WORDS,
+                                      'packet(40)': packet}}
+
                 # Now convert the date to seconds and modify the dictionary
                 new_cmd['time'] = eachcommand['time']
         
