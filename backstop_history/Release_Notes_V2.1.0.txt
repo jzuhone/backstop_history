@@ -1,0 +1,85 @@
+﻿
+Release Notes for Version 2.1.0 of Backstop History
+
+
+
+Change Description
+==================
+
+The Shiny release is deprecating Ska.ParseCM and moving towards using kadi for
+reading the backstop commands from the load CR*.backstop files. This
+change includes alterations to the data structures returned by the call to the kadi.commands.get_cmds_from_backstop method, as compared to the data structures returned by ParseCM.
+
+As Backstop History inserts commends for all Non-Load events, the change
+in the data structures necessitated modification of the structure of the
+commands which Backstop History inserts into the history. 
+
+Data structure changes also included dictionary keyword case changes. This necessitated changes in the code when those dictionary elements are referenced.
+
+Comments were added and modified for clarification.
+
+
+Files Changed:
+============== 
+
+https://github.com/acisops/backstop_history/pull/17
+
+
+
+
+
+Testing:
+======== 
+
+Regression Test Suite:
+
+APR0217B
+AUG2517C
+AUG3017A
+JUL2717A
+JUL3117B
+MAR0617A
+MAR0817B
+MAR1117A
+MAR1517B
+MAR2017E
+SEP0417A
+SEP0917C 
+
+Additional Tests:
+
+SEP0917
+OCT2118
+SEP0619
+MAY2420 
+May2620
+May2820
+JUL2720
+AUG1020
+AUG3120 
+SEP0720
+NOV0220
+
+APR3020 - Hand edited test load to test LTCTI handling during TOO
+
+
+
+Interface impacts
+=================
+
+There are no interface impacts.
+
+
+Review
+====== 
+
+Objectives and Results by ACIS Ops
+
+
+Deployment Plan
+===============
+
+Installation of this module must be coordinated with the rest of the Shiny installs.
+
+
+
