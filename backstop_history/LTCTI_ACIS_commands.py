@@ -2,6 +2,10 @@
 #
 #  CTI_RTS_Backstop_Commands - Base Class Definition
 #
+#   Update: November 24, 2020
+#           Gregg Germain
+#           V2.1 - change command format to new shiny forat
+#
 ################################################################################
 
 class LTCTI_ACIS_commands(object):
@@ -144,15 +148,15 @@ class LTCTI_ACIS_commands(object):
         # NOTE: Never write into this attribute. Always make a copy
         self.general_bs_cmds = [
                               # --------------------- SIMTRANS -----------------------------
-                               {'cmd': 'SIMTRANS',
+                               {'idx': -1,
                                 'date': '1900:001',
-                                'msid': None,
-                                'params': {'POS': -99616, 'SCS': 108, 'STEP': 1},
-                                'paramstr': 'POS= -99616, SCS= 108, STEP= 1',
-                                'scs': 108,
-                                'step': 1,
-                                'time': -1.0,
-                                'tlmsid': None,
-                                'vcdu': 0000000},
+                                'type': 'SIMTRANS',
+                                'tlmsid': 'None',
+                                'scs': 132,
+                                'step': 451,
+                                'time': -1,
+                                'timeline_id': 0,
+                                'vcdu': 0000000,
+                                'params': {'pos': -99616}},
 
                                 ] # End of definition of self.LTCTI_bs_cmds

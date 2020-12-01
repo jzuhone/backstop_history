@@ -22,6 +22,11 @@
 #           - Replace ParseCM and Commanded States
 #           - Accomodate in-situ ECS measurments within a Normal load
 #
+# Update: November 4, 2020
+#         Gregg Germain
+#         Tom Aldcroft
+#           - Accomodate shiny
+#
 ################################################################################
 from __future__ import print_function
 import copy
@@ -34,7 +39,6 @@ from pathlib import Path
 
 from backstop_history import LTCTI_RTS
 
-import Ska.ParseCM
 import kadi.commands
 
 from Chandra.Time import DateTime
@@ -140,69 +144,53 @@ class BackstopHistory(object):
         # will be entered in a copy of this data structure when the commands
         # are integrated into a backstop history
         # NOTE: Never write into this attribute. Always make a copy
-        self.scs107_bs_cmds = [
-                              # --------------------- SIMTRANS -----------------------------
-                               {'cmd': 'SIMTRANS',
+        self.scs107_bs_cmds = [# --------------------- NEW SIMTRANS -----------------------------
+                               {'idx': -1,
                                 'date': '1900:001',
-                                'msid': None,
-                                'params': {'POS': -99616, 'SCS': 108, 'STEP': 1},
-                                'paramstr': 'POS= -99616, SCS= 108, STEP= 1',
-                                'scs': 108,
-                                'step': 1,
-                                'time': -1.0,
-                                'tlmsid': None,
-                                'vcdu': 0000000},
-
-                                # --------------------- AA00000000 -----------------------------
-                                {'cmd': 'ACISPKT',               # Stop Science
-                                'date': '1900:001',
-                                'msid': None,
-                                'params': {'CMDS': 3,
-                                           'PACKET(40)': 'D80000300030603001300',
-                                           'SCS': 107,
-                                           'STEP': 1,
-                                           'TLMSID': 'AA00000000',
-                                           'WORDS': 3},
-                                'paramstr': 'TLMSID= AA00000000, CMDS= 3, WORDS= 3, PACKET(40)= D80000300030603001300                   , SCS= 107, STEP= 1',
+                                'type': 'SIMTRANS',
+                                'tlmsid': 'None',
                                 'scs': 107,
                                 'step': 1,
-                                'time': -1.0,
-                                'tlmsid': 'AA00000000',
-                                'vcdu': 0000000},
+                                'time': -1,
+                                'timeline_id': 0,
+                                'vcdu': 0000000,
+                                'params': {'pos': -99616}},
+                                # --------------------- NEW AA00000000 -----------------------------
+                                {'idx': -1,
+                                 'date': '1900:001',
+                                 'type': 'ACISPKT',
+                                 'tlmsid': 'AA00000000',
+                                 'scs': 107,
+                                 'step': 1,
+                                 'time': -1,
+                                 'timeline_id': 0,
+                                 'vcdu': 0000000,
+                                 'params': {'cmds': 3, 'words': 3, 'packet(40)': 'D80000300030603001300'}},
 
-                               # --------------------- AA00000000 -----------------------------
-                                {'cmd': 'ACISPKT',               # Stop Science
+                               # --------------------- NEW AA00000000 -----------------------------
+                                {'idx': -1,
+                                 'date': '1900:001',
+                                 'type': 'ACISPKT',
+                                 'tlmsid': 'AA00000000',
+                                 'scs': 107,
+                                 'step': 1,
+                                 'time': -1,
+                                 'timeline_id': 0,
+                                 'vcdu': 0000000,
+                                 'params': {'cmds': 3, 'words': 3, 'packet(40)': 'D80000300030603001300'}},
+                               
+                               # --------------------- NEW WSPOW00000 -----------------------------
+                               {'idx': -1,
                                 'date': '1900:001',
-                                'msid': None,
-                                'params': {'CMDS': 3,
-                                           'PACKET(40)': 'D80000300030603001300',
-                                           'SCS': 107,
-                                           'STEP': 2,
-                                           'TLMSID': 'AA00000000',
-                                           'WORDS': 3},
-                                'paramstr': 'TLMSID= AA00000000, CMDS= 3, WORDS= 3, PACKET(40)= D80000300030603001300                   , SCS= 107, STEP= 2',
-                                'scs': 107,
-                                'step': 2,
-                                'time': -1.0,
-                                'tlmsid': 'AA00000000',
-                                'vcdu': 0000000},
-                               # --------------------- WSPOW00000 -----------------------------
-                               {'cmd': 'ACISPKT',
-                                'date': '1900:001',
-                                'msid': None,
-                                'params': {'CMDS': 5,
-                                           'PACKET(40)': 'D8000070007030500200000000000010000',
-                                           'SCS': 107,
-                                           'STEP': 3,
-                                           'TLMSID': 'WSPOW00000',
-                                           'WORDS': 7},
-                                'paramstr': 'TLMSID= WSPOW00000, CMDS= 5, WORDS= 7, PACKET(40)= D8000070007030500200000000000010000     , SCS= 107, STEP= 3',
-                                'scs': 107,
-                                'step': 3,
-                                'time': -1.0,
+                                'type': 'ACISPKT',
                                 'tlmsid': 'WSPOW00000',
-                                'vcdu': 0000000} ]
-
+                                'scs': 132, 'step': 195,
+                                'time': -1,
+                                'timeline_id': 0,
+                                'vcdu': 0000000,
+                                'params': {'cmds': 5,
+                                           'words': 7,
+                                           'packet(40)': 'D8000070007030500200000000000010000'}} ]
 
         # Create the MP_TARGQUAT command that specifies a maneuver's final
         # position.
@@ -210,102 +198,81 @@ class BackstopHistory(object):
         # will be entered in a copy of this data structure when the command
         # is integrated into a backstop history
         # NOTE: Never write into this attribute. Always make a copy
-                              # --------------------- MP_TARGQUAT ------------------------
-        self.MAN_bs_cmds =  {'cmd': 'MP_TARGQUAT',
-                                'date': '1900:001',
-                                'msid': None,
-                                'params': {'CMDS': 8,
-                                           'Q1': 1000.0,
-                                           'Q2': 2000.0,
-                                           'Q3': 3000.0,
-                                           'Q4': 4000.0,
-                                           'SCS': 135,
-                                           'STEP': 1,
-                                           'TLMSID': 'AOUPTARQ'},
-                                'paramstr': 'POS= -99616, SCS= 108, STEP= 1',
-                                'scs': 135,
-                                'step': 1,
-                                'time': -1.0,
-                                'tlmsid': 'AOUPTARQ',
-                                'vcdu': 0000000}
+        # --------------------- MP_TARGQUAT ------------------------
+        self.MAN_bs_cmds =  {'idx': -1,
+                             'date': '1900:001',
+                             'type': 'MP_TARGQUAT',
+                             'tlmsid': 'AOUPTARQ',
+                             'scs': 129,
+                             'step': 796,
+                             'time': -1,
+                             'timeline_id': 0,
+                             'vcdu': 0000000,
+                             'params': {'cmds': 8, 'q1': 0.0, 'q2': 0.0, 'q3': 0.0, 'q4': 0.0}}
 
         # Create the AOMANUVR command that initiates a maneuver
         # VCDU's, SCS, and STEP values in this data structure are bogus.  Meaningful times
         # will be entered in a copy of this data structure when the command
         # is integrated into a backstop history
         # NOTE: Never write into this attribute. Always make a copy
-                              # --------------------- AOMANUVR ------------------------
-        self.AOMANUVR_bs_cmd = {'cmd': 'COMMAND_SW',
+        # --------------------- AOMANUVR ------------------------
+        self.AOMANUVR_bs_cmd = {'idx': -1,
                                 'date': '1900:001',
-                                'msid': 'AOMANUVR',
-                                'params': {'HEX': 8034101,
-                                           'MSID': 'AOMANUVR',
-                                           'SCS': 135,
-                                           'STEP': 2,
-                                           'TLMSID': 'AOMANUVR'},
-                                'paramstr': 'TLMSID= AOMANUVR, HEX= 8034101, MSID= AOMANUVR, SCS= 135, STEP= 1',
-                                'scs': 135,
-                                'step': 2,
-                                'time': -1.0,
+                                'type': 'COMMAND_SW',
                                 'tlmsid': 'AOMANUVR',
-                                'vcdu': 0000000}
+                                'scs': 129,
+                                'step': 755,
+                                'time': -1,
+                                'timeline_id': 0,
+                                'vcdu': 0000000,
+                                'params': {'hex': '8034101', 'msid': 'AOMANUVR'}}
 
         # Create examples of the individual power commands that might get executed by CAP
         # NOTE: Never write into these attributes. Always make a copy
 
         # --------------------- WSVIDALLDN -----------------------------
         # TLMSID= WSVIDALLDN, CMDS= 4, WORDS= 5, PACKET(40)= D800005000506050020000000000            , SCS= 132, STEP= 44
-        self.WSVIDALLDN_bs_cmd =  {'cmd': 'ACISPKT',
+        self.WSVIDALLDN_bs_cmd =  {'idx': -1,
                                    'date': '1900:001',
-                                   'msid': None,
-                                   'params': {'CMDS': 4,
-                                           'PACKET(40)': 'D800005000506050020000000000',
-                                           'SCS': 135,
-                                           'STEP': 3,
-                                           'TLMSID': 'WSVIDALLDN',
-                                           'WORDS': 5},
-                                   'paramstr': 'TLMSID= WSVIDALLDN, CMDS= 4, WORDS= 5, PACKET(40)=D800005000506050020000000000     , SCS= 135, STEP= 3',
-                                   'scs': 135,
-                                   'step': 3,
-                                   'time': -1.0,
+                                   'type': 'ACISPKT',
                                    'tlmsid': 'WSVIDALLDN',
-                                   'vcdu': 0000000}
+                                   'scs': 133,
+                                   'step': 577,
+                                   'time': -1,
+                                   'timeline_id': 0,
+                                   'vcdu': 0000000,
+                                   'params': {'cmds': 4,
+                                              'words': 5,
+                                              'packet(40)': 'D800005000506050020000000000'}}
 
         # --------------------- WSPOW00000 -----------------------------
         # TLMSID= WSPOW00000, CMDS= 5, WORDS= 7, PACKET(40)= D8000070007030500200000000000010000     , SCS= 131, STEP= 196
-        self.WSPOW00000_bs_cmd = {'cmd': 'ACISPKT',
-                                  'date': '1900:001',
-                                  'msid': None,
-                                  'params': {'CMDS': 5,
-                                             'PACKET(40)': 'D8000070007030500200000000000010000',
-                                             'SCS': 135,
-                                             'STEP': 3,
-                                             'TLMSID': 'WSPOW00000',
-                                             'WORDS': 7},
-                                  'paramstr': 'TLMSID= WSPOW00000, CMDS= 5, WORDS= 7, PACKET(40)= D8000070007030500200000000000010000     , SCS= 135, STEP= 3',
-                                'scs': 135,
-                                'step': 3,
-                                'time': -1.0,
-                                'tlmsid': 'WSPOW00000',
-                                'vcdu': 0000000}
+        self.WSPOW00000_bs_cmd = {'idx': -1,
+                                  'date': '2020:305:02:52:33.492',
+                                  'type': 'ACISPKT',
+                                  'tlmsid': 'WSPOW00000',
+                                  'scs': 132, 'step': 195,
+                                  'time': -1,
+                                  'timeline_id': 0,
+                                  'vcdu': 0000000,
+                                  'params': {'cmds': 5,
+                                             'words': 7,
+                                             'packet(40)': 'D8000070007030500200000000000010000'}}
 
         # --------------------- WSPOW0002A -----------------------------
         # TLMSID= WSPOW0002A, CMDS= 5, WORDS= 7, PACKET(40)= D80000700073E800020000000000001002A     , SCS= 131, STEP= 170
-        self.WSPOW0002A_bs_cmd = {'cmd': 'ACISPKT',
-                                  'date': '1900:001',
-                                  'msid': None,
-                                  'params': {'CMDS': 5,
-                                             'PACKET(40)': 'D80000700073E800020000000000001002A',
-                                             'SCS': 107,
-                                             'STEP': 3,
-                                             'TLMSID': 'WSPOW0002A',
-                                             'WORDS': 7},
-                                  'paramstr': 'TLMSID= WSPOW0002A, CMDS= 5, WORDS= 7, PACKET(40)= D80000700073E800020000000000001002A     , SCS= 107, STEP= 3',
-                                'scs': 107,
-                                'step': 3,
-                                'time': -1.0,
-                                'tlmsid': 'WSPOW0002A',
-                                'vcdu': 0000000}
+        self.WSPOW0002A_bs_cmd = {'idx': -1,
+                                  'date': '2020:304:20:09:46.677',
+                                  'type': 'ACISPKT',
+                                  'tlmsid': 'WSPOW0002A',
+                                  'scs': 132,
+                                  'step': 22,
+                                  'time': -1,
+                                  'timeline_id': 0,
+                                  'vcdu': 0000000,
+                                  'params': {'cmds': 5,
+                                             'words': 7,
+                                             'packet(40)': 'D80000700073E800020000000000001002A'}}
 
     #-------------------------------------------------------------------------------
     #
@@ -337,15 +304,41 @@ class BackstopHistory(object):
                      The time of interrupt if the REVIEW load is an interrupt
                      load.
         """
+        # `oflsdir` is of the form <root>/2018/MAY2118/ofls
+        oflsdir = Path(oflsdir)
+
+        # Require that oflsdir starts with /data/acis unless the environment
+        # variable ALLOW_NONSTANDARD_OFLSDIR is set.
+        allow_nonstandard_oflsdir = 'ALLOW_NONSTANDARD_OFLSDIR' in os.environ
+
+        if (not allow_nonstandard_oflsdir
+                and oflsdir.parts[:3] != ('/', 'data', 'acis')):
+            raise ValueError('--backstop_file must start with /data/acis. To remove this '
+                             'restriction set the environment variable '
+                             'ALLOW_NONSTANDARD_OFLSDIR to any value.')
+
+        oflsdir_root = oflsdir.parents[2]  # Supplies the <root>
+
         # Does a Continuity file exist for the input path
-        ofls_cont_fn = os.path.join(oflsdir, self.continuity_file_name)
-        if os.path.exists(ofls_cont_fn):
+        ofls_cont_fn = oflsdir / self.continuity_file_name
+
+        if ofls_cont_fn.exists():
 
             # Open the Continuity text file in the ofls directory and read the name of the
             # continuity load date (e.g. FEB2017).  then close the file
             ofls_cont_file = open(ofls_cont_fn, 'r')
-            # Read the first line...the pat to the continuity load
-            continuity_load_path = ofls_cont_file.readline()[:-1]
+
+            # Read the first line...the path to the continuity load. The
+            # continuity path in the file is hardwired to a /data/acis path,
+            # independent of user-specified `oflsdir` (e.g.
+            # /data/acis/LoadReviews/2018/MAY2118/ofls), so if a non-standard
+            # OFLS dir path is allowed then fix that by putting the last 3 parts
+            # (2018/MAY2118/ofls) onto the oflsdir root.
+            pth = Path(ofls_cont_file.readline().strip())
+            if allow_nonstandard_oflsdir:
+                continuity_load_path = str(Path(oflsdir_root, *pth.parts[-3:]))
+            else:
+                continuity_load_path = str(pth)
 
             # Read the entire second line - load type and possibly the interrupt time
             type_line = ofls_cont_file.readline()
@@ -381,7 +374,7 @@ class BackstopHistory(object):
         """
         Given the path to an ofls directory, this method will call the "globfile"
         to obtain the name of the backstop file that represents the built load.
-        It then calls Ska.ParseCM.read_backstop to obtain the list of commands
+        It then calls kadi.commands.get_cmds_from_backstop to obtain the list of commands
         Review and Continuity loads appear in the ....ofls/ subdir and always
         begin with the characters "CR"
 
@@ -391,21 +384,25 @@ class BackstopHistory(object):
                              in ofls directory that represents the  built load.
                                 -  list of dictionary items
         """
-        bs_file_path = globfile(os.path.join(oflsdir, 'CR*.backstop'))
+        backstop_file_path = globfile(os.path.join(oflsdir, 'CR*.backstop'))
 
-        self.logger.info("GET_BS_CMDS - Using backstop file %s" % bs_file_path)
+        self.logger.info("GET_BS_CMDS - Using backstop file %s" % backstop_file_path)
 
         # append this to the list of backstop files that are processed
-        self.backstop_file_path_list.append(bs_file_path)
+        self.backstop_file_path_list.append(backstop_file_path)
 
         # Extract the name of the backstop file from the path
-        bs_name = os.path.split(bs_file_path)[-1]
+        bs_name = os.path.split(backstop_file_path)[-1]
 
         # Read the commands located in that backstop file
-        bs_cmds = Ska.ParseCM.read_backstop(bs_file_path)
+        bs_cmds = kadi.commands.get_cmds_from_backstop(backstop_file_path)
+        # This next line will need to be restored ONCE SHINY IS READY
+        bs_cmds = bs_cmds.as_list_of_dict()
+
         self.logger.info("GET_BS_CMDS - Found %d backstop commands between %s and %s" % (len(bs_cmds),
                                                                                          bs_cmds[0]['date'],
                                                                                          bs_cmds[-1]['date']))
+
         # Return both the backstop commands in cmd states format and the
         # name of the backstop file
 
@@ -422,7 +419,7 @@ class BackstopHistory(object):
         """
         Given the path to an ofls directory, this method will call the "globfile"
         to obtain the name of the backstop file that represents the built load.
-        It then calls Ska.ParseCM.read_backstop to obtain the list of commands
+        It then calls  kadi.commands.get_cmds_from_backstop to obtain the list of commands
         Vehicle_only loads appear in the ....ofls/vehicle/ subdir and always
         begin with the characters "VR"
 
@@ -438,8 +435,12 @@ class BackstopHistory(object):
         # Extract the name of the backstop file from the path
         bs_name = os.path.split(backstop_file_path)[-1]
 
-        # Read the commands located in that backstop file
-        bs_cmds = Ska.ParseCM.read_backstop(backstop_file_path)
+        # Read the commands located in that backstop file and convert to
+        # list of dict.
+        bs_cmds = kadi.commands.get_cmds_from_backstop(backstop_file_path)
+        # This next line will need to be restored ONCE SHINY IS READY
+        bs_cmds = bs_cmds.as_list_of_dict()
+
         self.logger.info('GET_VEHICLE_ONLY_CMDS - Found %d backstop commands between %s and %s' % (len(bs_cmds),
                                                                                                    bs_cmds[0]['date'],
                                                                                                    bs_cmds[-1]['date']))
@@ -525,7 +526,6 @@ class BackstopHistory(object):
                 # If the event found is a LTCTI measurement...
                 if splitline[1] == 'LTCTI':
                     # .....process it.
-
                     # Since this is a LTCTI, process it feeding the already-split
                     # event line.
                     # Process_LTCTI appends the vent commands to self.master_list
@@ -578,6 +578,8 @@ class BackstopHistory(object):
                  INPUTS: Continuity load backstop file commands
                          Review Load Backstop file
 
+                         NOTE: end_event_time is initialized by ATC to the end of the review load.
+
                 OUTPUTS: Backstop commands of the combined Continuity and Review
                          loads.
         """
@@ -601,6 +603,8 @@ class BackstopHistory(object):
         # Sort the master list
         self.master_list = sorted(self.master_list, key=lambda k: k['time'])
 
+        # MASTER  = Trimmed Continuity + Review Load.
+  
         # Now scan the NLET file for any Event that occurs between the
         # start of the continuity load and the end of the review load.
         # For now we won't make this inclusive but subsequent
@@ -653,8 +657,9 @@ class BackstopHistory(object):
                                                  SCS-107 or STOP time
                                 - Only Continuity files get trimmed.
 
+               NOTE: Upon entry, self.master_list contains 
 
-            Output: None returned by self.master_list has been updated with the LTCTI commands.
+            Output: None returned:  self.master_list has been updated with the LTCTI commands.
 
             LTCTI's can occur during shutdowns, within a Normal load (JUL2720 IRU swap), and
             across loads ( e.g. MAY2620---MAY2420).  So when processing LTCTI's the algorithm has
@@ -666,12 +671,12 @@ class BackstopHistory(object):
         self.RTS.RTS_name = ltcti_event[3]
         self.RTS.NUM_HOURS = ltcti_event[4]
 
-        self.logger.info("LTCTI Measurement FOUND %s CAP # %s" % (RTS_start_date, str(self.RTS.CAP_num)))
+        self.logger.info("\nLTCTI Measurement FOUND %s CAP # %s RTS file %s\n" % (RTS_start_date, str(self.RTS.CAP_num),self.RTS.RTS_name ))
 
         # Process the specified RTS file and get a time-stamped numpy array of the data
         ltcti_cmd_list = self.RTS.processRTS(self.RTS.RTS_name, self.RTS.SCS_NUM, self.RTS.NUM_HOURS, RTS_start_date)
 
-        # Now convert the numpy array into SKA.Parse command format which is a list of dicts
+        # Now convert the numpy array into SKA command format which is a list of dicts
         LTCTI_bs_cmds = self.RTS.convert_ACIS_RTS_to_ska_parse(ltcti_cmd_list)
 
         # We need to find the first ACISPKT command in the review load that
@@ -679,9 +684,8 @@ class BackstopHistory(object):
         # a Stop Science ('AA00000000').
         # IMPORTANT: The LTCTI run may have started in the Continuity load
         #            but it will end either because it runs to completion with
-        #            it's own Stop Science commands, OR
-        # To do that we obtain the start and stop dates and times of
-        # the timed LTCTI command set
+        #            it's own Stop Science commands, OR a Stop Sciecne in the review load
+        # To do that we obtain the start time of the timed LTCTI command set
         ltcti_cmd_list_start_time = DateTime(RTS_start_date).secs
 
         # Initialize the ACIS_specific_cmds as an empty array of DTYPE self.ACISPKT_dtype
@@ -699,14 +703,14 @@ class BackstopHistory(object):
         # occur after the STOP time.processing
         #
         for eachCR_file in self.backstop_file_path_list[:0:-1]:
-            # Read all the commands pertinent to ACIS
+            # Read all the Continuity commands pertinent to ACIS filtered by get_ACIS_backstop_cmds
             all_file_cmds = self.get_ACIS_backstop_cmds(eachCR_file)
             # Trim the commands that occur on or after the trim date
             filter_arr = all_file_cmds['event_time'] <= trim_time
             ACIS_specific_cmds = np.append(ACIS_specific_cmds, all_file_cmds[filter_arr], axis=0)
 
         # At this point you have all the Continuity pertinent commands assembled.
-        # Now add the pertinent commands coming from the Review Load
+        # Now get the pertinent commands coming from the Review Load
         all_file_cmds = self.get_ACIS_backstop_cmds(self.backstop_file_path_list[0])
         #....and append them
         ACIS_specific_cmds = np.append(ACIS_specific_cmds, all_file_cmds, axis = 0)
@@ -716,24 +720,29 @@ class BackstopHistory(object):
         cut_cmd_indices = np.where( (ACIS_specific_cmds[:]['event_time'] >= ltcti_cmd_list_start_time) & \
                                                 (ACIS_specific_cmds[:]['packet_or_cmd'] == 'AA00000000') )
 
-        # A maneuver-only load will NOT have any Stop Science commands in it.
+        # A maneuver-only load may NOT have any Stop Science commands in it.
         # For example the May2620 Maneuver-Only load
         # So check to see if you got a result for cut_cmd_indices.
         # if you did then use it to determine whether or not you need to trim the
         # LTCTI commands.  If not, then the LTCI ran to completion
+        # If no stop sciences in the (maneruver-only) review load...
         if cut_cmd_indices[0].size == 0:
             print(' NO STOP SCIENCES IN REVIEW LOAD')
+            #...then the KTCTI runs to completion
             trimmed_LTCTI_bs_cmds = LTCTI_bs_cmds
-        else:
-            # Get the first command that is after the RTS start time and an AA00
+        else: # Else there was a stop science found in the review load...
+            # Get the first AA00 from the REVIEW load
             bs_load_stop_science = ACIS_specific_cmds[cut_cmd_indices[0][0]]
 
             # There was a stop science in the review load so trim any
             # LTCTI CLD commands that occurred ON or AFTER the
             # Return to Science Time of First Command.
+            # If the first AA00 in the Review load comes AFTER the AA00 in the LTCTI
+            # Command list, the LTCTI AA00 is preserved.
             trimmed_LTCTI_bs_cmds = self.Trim_bs_cmds_After_Date(bs_load_stop_science['event_time'], LTCTI_bs_cmds)
 
         # Append the LTCTI commands to the Master list
+        # They are out of time order but will be sorted in the calling routine.
         self.master_list += trimmed_LTCTI_bs_cmds
 
 #-------------------------------------------------------------------------------
@@ -765,13 +774,11 @@ class BackstopHistory(object):
 
             # Set the dates, times and Q's
             new_maneuver['date'] = MAN_date
-            new_maneuver['params']['Q1'] = float(q1)
-            new_maneuver['params']['Q2'] = float(q2)
-            new_maneuver['params']['Q3'] = float(q3)
-            new_maneuver['params']['Q4'] = float(q4)
+            new_maneuver['params']['q1'] = float(q1)
+            new_maneuver['params']['q2'] = float(q2)
+            new_maneuver['params']['q3'] = float(q3)
+            new_maneuver['params']['q4'] = float(q4)
             new_maneuver['time'] = DateTime(MAN_date).secs
-            paramstr = 'TLMSID= AOUPTARQ, CMDS= 8, Q1= %s, Q2= %s, Q3= %s, Q4= %s, SCS= 1, STEP= 1' % (q1, q2, q3, q4)
-            new_maneuver['paramstr'] = paramstr
 
             # Tack the maneuver to the Master List
             self.master_list.append(new_maneuver)
@@ -817,9 +824,8 @@ class BackstopHistory(object):
                   you can rest assured that the necessary data structurs exist
         """
         # Log that you see it
-        self.logger.info("NEW Power Command Found %s power cmd: %s" % (DateTime(power_cmd_event[0]).date, power_cmd_event[1]) )
+        self.logger.info("\nNEW Power Command Found %s power cmd: %s" % (DateTime(power_cmd_event[0]).date, power_cmd_event[1]) )
         # Process the power command. Make a copy of the appropriate power command attribute
-
         if power_cmd_event[1] == 'WSVIDALLDN':
             new_pwr_cmd = copy.deepcopy(self.WSVIDALLDN_bs_cmd)
         elif power_cmd_event[1] == 'WSPOW00000':
@@ -1091,7 +1097,6 @@ class BackstopHistory(object):
 
         # Concatenate the trimmed VO list
         self.master_list += vo_bs_cmds_trimmed
-
 
         # MASTER LIST = Trimmed Continuity +
         #                 SCS-107 COMMANDS +
@@ -1507,14 +1512,14 @@ class BackstopHistory(object):
     #                              the full path to the OFLS directory is written out.
     #
     #-------------------------------------------------------------------------------
-    def write_back_chain_to_pickle(self, inst_format='ACIS', 
+    def write_back_chain_to_pickle(self, inst_format='ACIS',
                                    file_path='/home/gregg/DPAMODEL/dpa_check/Chain.p', chain=None):
         """
         Given a backchain, and a file path, write the contents of the backchain to a pickle file.
         If the "inst_format" argument is "ACIS' then the full path to the ACIS ofls directory is
         written out. If the inst_format is anything except ACIS, then the load week 
         (e.g. JAN0917) is extracted from the second column in the backchain array and only that is
-        written out. 
+        written out.
 
         The latter option allows users with their own backstop tarball directory structure to
         utilize the backchain and obtain backstop command files.
@@ -1560,14 +1565,14 @@ class BackstopHistory(object):
     #                           the full path to the OFLS directory is written out.
     #
     #-------------------------------------------------------------------------------
-    def write_back_chain_to_txt(self, inst_format='ACIS', 
+    def write_back_chain_to_txt(self, inst_format='ACIS',
                                 file_path='/home/gregg/DPAMODEL/dpa_check/Chain.txt', chain=None):
         """
         Given a backchain, and a file path, write the contents of the backchain to a text file.
         If the "inst_format" argumen is "ACIS' then the full path to the ACIS ofls directory is
         written out. If the inst_format is anything except ACIS, then the load week 
         (e.g. JAN0917) is extracted from the second column in the backchain array and only that is
-        written out. 
+        written out.
 
         The latter option allows users with their own backstop tarball directory structure to
         utilize the backchain and obtain backstop command files.
